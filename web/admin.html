@@ -18,6 +18,7 @@
     #status { margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; }
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
+    .order-card { background: #fff9c4; border: 1px solid #ffeb3b; padding: 15px; margin: 10px 0; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -47,9 +48,13 @@
 
       <h2 style="margin-top:30px;">Produits actuels</h2>
       <div id="list"></div>
+
+      <!-- SECTION COMMANDES -->
+      <h2 style="margin-top:30px;">Commandes reçues</h2>
+      <div id="orders-list" style="max-height:400px;overflow-y:auto;"></div>
     </div>
   </div>
-
+  
   <script>
     const PASSWORD = "calaisweed2025"; // CHANGE CE MOT DE PASSE !
     const REPO_OWNER = "maxirmeee-code"; // ← FIXÉ (ton vrai owner)
@@ -91,6 +96,50 @@
         renderList();
       }
     }
+
+    // === CHARGEMENT DES COMMANDES ===
+async function loadOrders() {
+  try {
+    const res = await fetch('/orders.json?t=' + Date.now());
+    if (!res.ok) throw new Error("Pas de commandes");
+    const orders = await res.json();
+    renderOrders(orders);
+  } catch (err) {
+    document.getElementById('orders-list').innerHTML = "<p style='color:#999;text-align:center;'>Aucune commande</p>";
+  }
+}
+
+// === AFFICHAGE DES COMMANDES ===
+function renderOrders(orders) {
+  const list = document.getElementById('orders-list');
+  if (orders.length === 0) {
+    list.innerHTML = "<p style='color:#999;text-align:center;'>Aucune commande</p>";
+    return;
+  }
+  list.innerHTML = orders.reverse().map(order => `
+    <div class="product" style="background:#fff9c4;border:1px solid #ffeb3b;padding:15px;margin:10px 0;border-radius:8px;">
+      <strong>Commande #${order.id}</strong> <small>le ${order.timestamp}</small><br>
+      <strong>Client :</strong> @${order.username} (ID: ${order.userId})<br><br>
+      <div style="margin:8px 0;">
+        ${order.items.map(item => `• <strong>${item.name}</strong> (${item.weight}) → ${item.price}€`).join('<br>')}
+      </div>
+      <strong style="color:#d32f2f;">Total : ${order.total}€</strong>
+    </div>
+  `).join('');
+}
+
+// Charge les commandes au login
+function login() {
+  const input = document.getElementById('password').value;
+  if (input === PASSWORD) {
+    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('password').value = '';
+    loadProducts();
+    loadOrders(); // ← CHARGE LES COMMANDES
+  } else {
+    alert("Mot de passe incorrect !");
+  }
+}
 
     // AFFICHE LA LISTE
     function renderList() {
