@@ -52,9 +52,9 @@
 
   <script>
     const PASSWORD = "calaisweed2025"; // CHANGE CE MOT DE PASSE !
-    const REPO_OWNER = "maxirmeee-code";
-    const REPO_NAME = "telegram-shop-miniapp";
-    const FILE_PATH = "web/products.json";
+    const REPO_OWNER = "maxirmeee-code"; // ← FIXÉ (ton vrai owner)
+    const REPO_NAME = "telegram-shop-miniapp"; // ← Fixé
+    const FILE_PATH = "web/products.json"; // ← Fixé
     let products = [];
 
     function login() {
@@ -157,27 +157,32 @@
       }
     }
 
-    // SAUVEGARDE SUR GITHUB (FIXÉ 100% - AVEC COMMITTER + HEADERS V3)
+    // SAUVEGARDE SUR GITHUB (FIXÉ AVEC OWNER CORRIGÉ)
     async function saveToGitHub(message) {
-      const token = prompt("Token GitHub (doit avoir 'Contents: write') :");
+      const token = prompt("Token GitHub (doit avoir 'repo' scope) :");
       if (!token?.trim()) return;
+
+      const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+      console.log("API URL:", apiUrl); // DEBUG
 
       try {
         // RÉCUPÈRE LE SHA ACTUEL (gestion 404)
         let sha = null;
         try {
-          const shaRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+          const shaRes = await fetch(apiUrl, {
             headers: {
               'Authorization': `token ${token}`,
               'Accept': 'application/vnd.github.v3+json',
-              'X-GitHub-Api-Version': '2022-11-28'
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'CalaisWeed-Admin'
             }
           });
           if (shaRes.ok) {
             const data = await shaRes.json();
             sha = data.sha;
           } else if (shaRes.status !== 404) {
-            throw new Error(`Erreur SHA: ${shaRes.status} - ${shaRes.statusText}`);
+            const err = await shaRes.json();
+            throw new Error(`Erreur SHA: ${shaRes.status} - ${err.message}`);
           }
         } catch (shaErr) {
           if (shaErr.message.includes('404')) {
@@ -192,13 +197,14 @@
         const content = btoa(unescape(encodeURIComponent(jsonString)));
 
         // ENVOIE LA MISE À JOUR (AVEC COMMITTER)
-        const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+        const putRes = await fetch(apiUrl, {
           method: 'PUT',
           headers: {
             'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'CalaisWeed-Admin'
           },
           body: JSON.stringify({
             message: message || 'Mise à jour produits via admin',
@@ -206,7 +212,7 @@
             sha: sha,
             committer: {
               name: "Admin CalaisWeed",
-              email: "admin@calaisweed.fr" // ← CHANGE SI TU VEUX
+              email: "admin@calaisweed.fr"
             }
           })
         });
@@ -216,7 +222,7 @@
           renderList();
         } else {
           const err = await putRes.json();
-          document.getElementById('status').innerHTML = `<p class="error">Erreur GitHub: ${err.message || putRes.statusText}</p>`;
+          document.getElementById('status').innerHTML = `<p class="error">Erreur GitHub: ${err.message || putRes.statusText} (Status: ${putRes.status})</p>`;
           console.error('GitHub Error:', err);
         }
       } catch (err) {
