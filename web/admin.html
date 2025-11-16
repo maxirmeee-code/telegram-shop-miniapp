@@ -15,6 +15,9 @@
     .option { display: flex; gap: 10px; margin: 8px 0; }
     .option input { width: 48%; }
     .clear { clear: both; }
+    #status { margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
@@ -27,7 +30,7 @@
       <h2>Ajouter un produit</h2>
       <input id="name" placeholder="Nom du produit" />
       <textarea id="desc" placeholder="Description détaillée"></textarea>
-      <input id="image" placeholder="URL de l'image (ex: https://...)" />
+      <input id="image" placeholder="URL de l'image (ex: https://image.noelshack.com/...)" />
       <input id="category" placeholder="Catégorie (Fleurs, Hash, Chimie)" />
       
       <h3>Options de poids/prix</h3>
@@ -40,6 +43,8 @@
       <button onclick="addOption()" style="background:#4CAF50; margin:10px 0;">+ Ajouter une option</button>
       <button onclick="saveProduct()" style="background:#2196F3;">Sauvegarder le produit</button>
 
+      <div id="status"></div>
+
       <h2 style="margin-top:30px;">Produits actuels</h2>
       <div id="list"></div>
     </div>
@@ -47,6 +52,9 @@
 
   <script>
     const PASSWORD = "calaisweed2025"; // CHANGE CE MOT DE PASSE !
+    const REPO_OWNER = "Mac524221189153";
+    const REPO_NAME = "telegram-shop-miniapp";
+    const FILE_PATH = "web/products.json";
     let products = [];
 
     function login() {
@@ -78,7 +86,9 @@
         products = await res.json();
         renderList();
       } catch (err) {
-        alert("Erreur chargement produits : " + err.message);
+        document.getElementById('status').innerHTML = `<p class="error">Erreur chargement: ${err.message}</p>`;
+        products = [];
+        renderList();
       }
     }
 
@@ -117,13 +127,13 @@
       })).filter(o => o.weight && !isNaN(o.price));
 
       if (!name || !category || options.length === 0) {
-        alert("Remplis tous les champs obligatoires !");
+        document.getElementById('status').innerHTML = '<p class="error">Remplis tous les champs obligatoires !</p>';
         return;
       }
 
       products.push({ name, description: desc, image, category, options });
       clearForm();
-      saveToGitHub();
+      saveToGitHub("Ajout produit: " + name);
     }
 
     function clearForm() {
@@ -143,39 +153,46 @@
     function deleteProduct(i) {
       if (confirm(`Supprimer "${products[i].name}" ?`)) {
         products.splice(i, 1);
-        saveToGitHub();
+        saveToGitHub("Suppression produit: " + products[i]?.name || "inconnu");
       }
     }
 
-    // SAUVEGARDE SUR GITHUB (FIXÉ 100%)
-    async function saveToGitHub() {
+    // SAUVEGARDE SUR GITHUB (FIXÉ 100% - AVEC COMMITTER + HEADERS V3)
+    async function saveToGitHub(message) {
       const token = prompt("Token GitHub (doit avoir 'Contents: write') :");
       if (!token?.trim()) return;
 
       try {
-        // RÉCUPÈRE LE SHA ACTUEL
-        const shaRes = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json', {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          }
-        });
-
+        // RÉCUPÈRE LE SHA ACTUEL (gestion 404)
         let sha = null;
-        if (shaRes.ok) {
-          const data = await shaRes.json();
-          sha = data.sha;
-        } else if (shaRes.status !== 404) {
-          const err = await shaRes.json();
-          throw new Error(err.message || `Erreur SHA: ${shaRes.status}`);
+        try {
+          const shaRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+            headers: {
+              'Authorization': `token ${token}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+            }
+          });
+          if (shaRes.ok) {
+            const data = await shaRes.json();
+            sha = data.sha;
+          } else if (shaRes.status !== 404) {
+            throw new Error(`Erreur SHA: ${shaRes.status} - ${shaRes.statusText}`);
+          }
+        } catch (shaErr) {
+          if (shaErr.message.includes('404')) {
+            console.log("Fichier n'existe pas → création");
+          } else {
+            throw shaErr;
+          }
         }
 
-        // ENCODE LE JSON
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 2))));
+        // ENCODE LE JSON (UTF-8 fixe)
+        const jsonString = JSON.stringify(products, null, 2);
+        const content = btoa(unescape(encodeURIComponent(jsonString)));
 
-        // ENVOIE LA MISE À JOUR
-        const putRes = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json', {
+        // ENVOIE LA MISE À JOUR (AVEC COMMITTER)
+        const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
           method: 'PUT',
           headers: {
             'Authorization': `token ${token}`,
@@ -184,22 +201,27 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: `Admin: mise à jour produits (${new Date().toLocaleString('fr-FR')})`,
+            message: message || 'Mise à jour produits via admin',
             content: content,
-            sha: sha
+            sha: sha,
+            committer: {
+              name: "Admin CalaisWeed",
+              email: "admin@calaisweed.fr" // ← CHANGE SI TU VEUX
+            }
           })
         });
 
         if (putRes.ok) {
-          alert("Sauvegardé avec succès ! Vercel redéploie dans 30s");
+          document.getElementById('status').innerHTML = '<p class="success">Sauvegardé avec succès ! Vercel redéploie dans 30s</p>';
           renderList();
         } else {
           const err = await putRes.json();
-          alert(`Erreur GitHub: ${err.message}`);
+          document.getElementById('status').innerHTML = `<p class="error">Erreur GitHub: ${err.message || putRes.statusText}</p>`;
+          console.error('GitHub Error:', err);
         }
       } catch (err) {
-        alert(`Erreur: ${err.message}`);
-        console.error(err);
+        document.getElementById('status').innerHTML = `<p class="error">Erreur réseau: ${err.message}</p>`;
+        console.error('Save Error:', err);
       }
     }
   </script>
