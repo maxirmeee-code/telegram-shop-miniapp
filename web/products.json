@@ -1,65 +1,65 @@
 [
-    {
-      name: "Mousseux Premium Yamal",
-      description: "Résine premium Yamal",
-      image: "https://image.noelshack.com/fichiers/2025/46/7/1763328261-img-0800.jpg",
-      category: "Hash",
-      options: [
-        { weight: "1g8", price: 10 },
-        { weight: "5g", price: 25 },
-        { weight: "10g", price: 50 },
-        { weight: "50g", price: 150 },
-        { weight: "100g", price: 300 }
-      ]
-    },
-    {
-      name: "Amnésia",
-      description: "Fleurs NL 100% HOLLANDE",
-      image: "https://image.noelshack.com/fichiers/2025/46/7/1763328102-amnesia-haze.jpeg",
-      category: "Fleurs",
-      options: [
-        { weight: "1g2", price: 10 },
-        { weight: "5g", price: 30 },
-        { weight: "10g", price: 55 }
-      ]
-    },
-    {
-      name: "Spali SUPER BOOF",
-      description: "Fleurs californienne cultivée en Espagne",
-      image: "https://image.noelshack.com/fichiers/2025/46/7/1763328317-runtz.jpg",
-      category: "Fleurs",
-      options: [
-        { weight: "1g", price: 10 },
-        { weight: "2g3", price: 20 },
-        { weight: "5g", price: 40 },
-        { weight: "10g", price: 75 },
-        { weight: "20g", price: 130 }
-      ]
-    },
-    {
-      name: "LA Mousse Plus 2026",
-      description: "Résine marocaine très bonne qualité en pénurie",
-      image: "https://image.noelshack.com/fichiers/2025/46/7/1763328263-img-0797.jpg",
-      category: "Hash",
-      options: [
-        { weight: "1g6", price: 10 },
-        { weight: "5g", price: 30 },
-        { weight: "10g", price: 55 },
-        { weight: "25g", price: 105 },
-        { weight: "50g", price: 180 },
-        { weight: "100g", price: 350 }
-      ]
-    },
-    {
-      name: "Coke Ecaille de Poisson",
-      description: "Coke très bien écaillée bien produite",
-      image: "https://image.noelshack.com/fichiers/2025/46/7/1763328331-coke.jpg", // ← FIXÉ
-      category: "Chimie",
-      options: [
-        { weight: "0g5", price: 25 },
-        { weight: "1g", price: 50 },
-        { weight: "3g", price: 130 },
-        { weight: "5g", price: 380 }
-      ]
-    }
-  ]
+  {
+    "name": "Mousseux Premium Yamal",
+    "description": "Résine premium Yamal",
+    "image": "https://image.noelshack.com/fichiers/2025/46/7/1763328261-img-0800.jpg",
+    "category": "Hash",
+    "options": [
+      { "weight": "1g8", "price": 10 },
+      { "weight": "5g", "price": 25 },
+      { "weight": "10g", "price": 50 },
+      { "weight": "50g", "price": 150 },
+      { "weight": "100g", "price": 300 }
+    ]
+  },
+  {
+    "name": "Amnésia",
+    "description": "Fleurs NL 100% HOLLANDE",
+    "image": "https://image.noelshack.com/fichiers/2025/46/7/1763328102-amnesia-haze.jpeg",
+    "category": "Fleurs",
+    "options": [
+      { "weight": "1g2", "price": 10 },
+      { "weight": "5g", "price": 30 },
+      { "weight": "10g", "price": 55 }
+    ]
+  },
+  {
+    "name": "Spali SUPER BOOF",
+    "description": "Fleurs californienne cultivée en Espagne",
+    "image": "https://image.noelshack.com/fichiers/2025/46/7/1763328317-runtz.jpg",
+    "category": "Fleurs",
+    "options": [
+      { "weight": "1g", "price": 10 },
+      { "weight": "2g3", "price": 20 },
+      { "weight": "5g", "price": 40 },
+      { "weight": "10g", "price": 75 },
+      { "weight": "20g", "price": 130 }
+    ]
+  },
+  {
+    "name": "LA Mousse Plus 2026",
+    "description": "Résine marocaine très bonne qualité en pénurie",
+    "image": "https://image.noelshack.com/fichiers/2025/46/7/1763328263-img-0797.jpg",
+    "category": "Hash",
+    "options": [
+      { "weight": "1g6", "price": 10 },
+      { "weight": "5g", "price": 30 },
+      { "weight": "10g", "price": 55 },
+      { "weight": "25g", "price": 105 },
+      { "weight": "50g", "price": 180 },
+      { "weight": "100g", "price": 350 }
+    ]
+  },
+  {
+    "name": "Coke Ecaille de Poisson",
+    "description": "Coke très bien écaillée bien produite",
+    "image": "https://image.noelshack.com/fichiers/2025/46/7/1763328331-coke.jpg",
+    "category": "Chimie",
+    "options": [
+      { "weight": "0g5", "price": 25 },
+      { "weight": "1g", "price": 50 },
+      { "weight": "3g", "price": 130 },
+      { "weight": "5g", "price": 380 }
+    ]
+  }
+]
