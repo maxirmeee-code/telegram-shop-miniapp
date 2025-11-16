@@ -6,49 +6,57 @@
   <title>Admin - CalaisWeed</title>
   <style>
     body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
-    input, textarea, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-    button { background: #25D366; color: white; border: none; cursor: pointer; }
-    .product { border: 1px solid #eee; padding: 10px; margin: 10px 0; border-radius: 8px; }
-    .delete { background: red; color: white; padding: 5px 10px; border: none; border-radius: 50%; cursor: pointer; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input, textarea, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    button { background: #25D366; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #1da851; }
+    .product { border: 1px solid #eee; padding: 12px; margin: 12px 0; border-radius: 8px; background: #f9f9f9; }
+    .delete { background: #e74c3c; color: white; padding: 6px 12px; border: none; border-radius: 50%; cursor: pointer; font-weight: bold; float: right; }
+    .option { display: flex; gap: 10px; margin: 8px 0; }
+    .option input { width: 48%; }
+    .clear { clear: both; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔐 Panel Admin</h1>
+    <h1>Panel Admin</h1>
     <input type="password" id="password" placeholder="Mot de passe" />
     <button onclick="login()">Connexion</button>
 
     <div id="admin-panel" style="display:none;">
       <h2>Ajouter un produit</h2>
-      <input id="name" placeholder="Nom" />
-      <textarea id="desc" placeholder="Description"></textarea>
-      <input id="image" placeholder="URL Image" />
+      <input id="name" placeholder="Nom du produit" />
+      <textarea id="desc" placeholder="Description détaillée"></textarea>
+      <input id="image" placeholder="URL de l'image (ex: https://...)" />
       <input id="category" placeholder="Catégorie (Fleurs, Hash, Chimie)" />
+      
+      <h3>Options de poids/prix</h3>
       <div id="options">
         <div class="option">
-          <input placeholder="Poids (ex: 1g)" class="weight" />
+          <input placeholder="Poids (ex: 1g8)" class="weight" />
           <input placeholder="Prix (€)" class="price" type="number" />
         </div>
       </div>
-      <button onclick="addOption()">+ Option</button>
-      <button onclick="saveProduct()">Sauvegarder</button>
+      <button onclick="addOption()" style="background:#4CAF50; margin:10px 0;">+ Ajouter une option</button>
+      <button onclick="saveProduct()" style="background:#2196F3;">Sauvegarder le produit</button>
 
-      <h2>Produits actuels</h2>
+      <h2 style="margin-top:30px;">Produits actuels</h2>
       <div id="list"></div>
     </div>
   </div>
 
   <script>
-    const PASSWORD = "calaisweed2025"; // ← CHANGE ÇA !
+    const PASSWORD = "calaisweed2025"; // CHANGE CE MOT DE PASSE !
     let products = [];
 
     function login() {
-      if (document.getElementById('password').value === PASSWORD) {
+      const input = document.getElementById('password').value;
+      if (input === PASSWORD) {
         document.getElementById('admin-panel').style.display = 'block';
+        document.getElementById('password').value = '';
         loadProducts();
       } else {
-        alert("Mot de passe incorrect");
+        alert("Mot de passe incorrect !");
       }
     }
 
@@ -56,84 +64,143 @@
       const div = document.createElement('div');
       div.className = 'option';
       div.innerHTML = `
-        <input placeholder="Poids (ex: 1g)" class="weight" />
+        <input placeholder="Poids (ex: 1g8)" class="weight" />
         <input placeholder="Prix (€)" class="price" type="number" />
       `;
       document.getElementById('options').appendChild(div);
     }
 
+    // CHARGE LES PRODUITS DEPUIS products.json
     async function loadProducts() {
-      const res = await fetch('/products.json');
-      products = await res.json();
-      renderList();
+      try {
+        const res = await fetch('/products.json?t=' + Date.now()); // Cache busting
+        if (!res.ok) throw new Error("Fichier non trouvé");
+        products = await res.json();
+        renderList();
+      } catch (err) {
+        alert("Erreur chargement produits : " + err.message);
+      }
     }
 
+    // AFFICHE LA LISTE
     function renderList() {
       const list = document.getElementById('list');
+      if (products.length === 0) {
+        list.innerHTML = "<p style='color:#999; text-align:center;'>Aucun produit</p>";
+        return;
+      }
       list.innerHTML = products.map((p, i) => `
         <div class="product">
-          <strong>${p.name}</strong> (${p.category})<br>
-          <small>${p.description}</small><br>
+          <strong>${p.name}</strong> <small>(${p.category})</small>
           <button class="delete" onclick="deleteProduct(${i})">×</button>
+          <div class="clear"></div>
+          <small style="color:#666;">${p.description}</small>
+          ${p.image ? `<br><img src="${p.image}" style="width:100%; max-height:120px; object-fit:cover; border-radius:8px; margin:8px 0;">` : ''}
+          <div style="margin-top:8px; font-size:13px;">
+            <strong>Options :</strong> 
+            ${p.options.map(o => `${o.weight} → ${o.price}€`).join(' | ')}
+          </div>
         </div>
       `).join('');
     }
 
+    // SAUVEGARDE NOUVEAU PRODUIT
     function saveProduct() {
-      const name = document.getElementById('name').value;
-      const desc = document.getElementById('desc').value;
-      const image = document.getElementById('image').value;
-      const category = document.getElementById('category').value;
+      const name = document.getElementById('name').value.trim();
+      const desc = document.getElementById('desc').value.trim();
+      const image = document.getElementById('image').value.trim();
+      const category = document.getElementById('category').value.trim();
 
       const options = Array.from(document.querySelectorAll('.option')).map(div => ({
-        weight: div.querySelector('.weight').value,
-        price: +div.querySelector('.price').value
-      })).filter(o => o.weight && o.price);
+        weight: div.querySelector('.weight').value.trim(),
+        price: parseFloat(div.querySelector('.price').value)
+      })).filter(o => o.weight && !isNaN(o.price));
 
       if (!name || !category || options.length === 0) {
-        alert("Remplis tout !");
+        alert("Remplis tous les champs obligatoires !");
         return;
       }
 
       products.push({ name, description: desc, image, category, options });
+      clearForm();
       saveToGitHub();
     }
 
+    function clearForm() {
+      document.getElementById('name').value = '';
+      document.getElementById('desc').value = '';
+      document.getElementById('image').value = '';
+      document.getElementById('category').value = '';
+      document.getElementById('options').innerHTML = `
+        <div class="option">
+          <input placeholder="Poids (ex: 1g8)" class="weight" />
+          <input placeholder="Prix (€)" class="price" type="number" />
+        </div>
+      `;
+    }
+
+    // SUPPRESSION
     function deleteProduct(i) {
-      products.splice(i, 1);
-      saveToGitHub();
-    }
-
-    async function saveToGitHub() {
-      const token = prompt("Token GitHub (génère sur github.com/settings/tokens) :");
-      if (!token) return;
-
-      const content = btoa(JSON.stringify(products, null, 2));
-      const res = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `token ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: 'Mise à jour produits',
-          content: content,
-          sha: await getSHA()
-        })
-      });
-
-      if (res.ok) {
-        alert("Produit sauvegardé ! Vercel redéploie dans 30s");
-        renderList();
-      } else {
-        alert("Erreur GitHub");
+      if (confirm(`Supprimer "${products[i].name}" ?`)) {
+        products.splice(i, 1);
+        saveToGitHub();
       }
     }
 
-    async function getSHA() {
-      const res = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json');
-      const data = await res.json();
-      return data.sha;
+    // SAUVEGARDE SUR GITHUB (FIXÉ 100%)
+    async function saveToGitHub() {
+      const token = prompt("Token GitHub (doit avoir 'Contents: write') :");
+      if (!token?.trim()) return;
+
+      try {
+        // RÉCUPÈRE LE SHA ACTUEL
+        const shaRes = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json', {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          }
+        });
+
+        let sha = null;
+        if (shaRes.ok) {
+          const data = await shaRes.json();
+          sha = data.sha;
+        } else if (shaRes.status !== 404) {
+          const err = await shaRes.json();
+          throw new Error(err.message || `Erreur SHA: ${shaRes.status}`);
+        }
+
+        // ENCODE LE JSON
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 2))));
+
+        // ENVOIE LA MISE À JOUR
+        const putRes = await fetch('https://api.github.com/repos/Mac524221189153/telegram-shop-miniapp/contents/web/products.json', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Admin: mise à jour produits (${new Date().toLocaleString('fr-FR')})`,
+            content: content,
+            sha: sha
+          })
+        });
+
+        if (putRes.ok) {
+          alert("Sauvegardé avec succès ! Vercel redéploie dans 30s");
+          renderList();
+        } else {
+          const err = await putRes.json();
+          alert(`Erreur GitHub: ${err.message}`);
+        }
+      } catch (err) {
+        alert(`Erreur: ${err.message}`);
+        console.error(err);
+      }
     }
   </script>
 </body>
