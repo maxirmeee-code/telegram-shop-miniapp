@@ -1,92 +1,42 @@
-// web/script.js – PRODUITS EN DUR (tes 5 produits)
+// web/script.js – PANIER FIXÉ : suppression + fermeture partout
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
 
-  // === TES 5 PRODUITS EN DUR ===
-  const products = [
-    {
-      name: "Mousseux Premium Yamal",
-      description: "Résine premium Yamal",
-      image: "images/yamal.png",
-      category: "Hash",
-      options: [
-        { weight: "1g8", price: 10 },
-        { weight: "5g", price: 25 },
-        { weight: "10g", price: 50 },
-        { weight: "50g", price: 150 },
-        { weight: "100g", price: 300 }
-      ]
-    },
-    {
-      name: "Amnésia",
-      description: "Fleurs NL 100% HOLLANDE",
-      image: "",
-      category: "Fleurs",
-      options: [
-        { weight: "1g2", price: 10 },
-        { weight: "5g", price: 30 },
-        { weight: "10g", price: 55 }
-      ]
-    },
-    {
-      name: "Spali SUPER BOOF",
-      description: "Fleurs californienne cultivée en Espagne",
-      image: "images/runtz.png",
-      category: "Fleurs",
-      options: [
-        { weight: "1g", price: 10 },
-        { weight: "2g3", price: 20 },
-        { weight: "5g", price: 40 },
-        { weight: "10g", price: 75 },
-        { weight: "20g", price: 130 }
-      ]
-    },
-    {
-      name: "LA Mousse Plus 2026",
-      description: "Résine marocaine très bonne qualité en pénurie",
-      image: "images/mousseplus.png",
-      category: "Hash",
-      options: [
-        { weight: "1g6", price: 10 },
-        { weight: "5g", price: 30 },
-        { weight: "10g", price: 55 },
-        { weight: "25g", price: 105 },
-        { weight: "50g", price: 180 },
-        { weight: "100g", price: 350 }
-      ]
-    },
-    {
-      name: "Coke Ecaille de Poisson",
-      description: "Coke très bien écaillée bien produite",
-      image: "images/coke.png",
-      category: "Chimie",
-      options: [
-        { weight: "0g5", price: 25 },
-        { weight: "1g", price: 50 },
-        { weight: "3g", price: 130 },
-        { weight: "5g", price: 380 }
-      ]
-    }
-  ];
+  // Remplace la partie "const products = [...]" par :
+let products = [];
 
-  // === PANIER ===
+// Au lieu de products en dur, charge depuis JSON
+fetch('/products.json')
+  .then(r => r.json())
+  .then(data => {
+    products = data;
+    document.querySelector('.cat-btn[data-cat="all"]')?.click();
+  })
+  .catch(() => {
+    alert("Erreur chargement produits");
+  });
+
+  // === AJOUT AU PANIER ===
   window.addToCart = (name, weight, price) => {
     cart.push({ name, weight, price });
     updateCartIcon();
     Telegram.WebApp.HapticFeedback?.impactOccurred('light');
   };
 
-  window.removeFromCart = (i) => {
-    cart.splice(i, 1);
+  // === SUPPRESSION DU PANIER (FIXÉ) ===
+  window.removeFromCart = (index) => {
+    cart.splice(index, 1);
     updateCartIcon();
-    renderCartPopup();
+    renderCartPopup(); // ← Met à jour le popup
   };
 
+  // === ICÔNE CADDIE ===
   const createCartIcon = () => {
     const icon = document.createElement('div');
     icon.id = 'cart-icon';
-    icon.innerHTML = `🛒 <span id="cart-count">${cart.length}</span>`;
+    icon.innerHTML = `🛒<span id="cart-count">0</span>`;
+    icon.style = 'position:fixed;top:20px;right:20px;background:#25D366;color:white;padding:10px 15px;border-radius:50px;cursor:pointer;z-index:1000;font-weight:bold;';
     icon.onclick = toggleCartPopup;
     document.body.appendChild(icon);
   };
@@ -96,48 +46,68 @@ document.addEventListener('DOMContentLoaded', () => {
     if (count) count.textContent = cart.length;
   };
 
+  // === OUVRIR / FERMER POPUP (FIXÉ : clic dehors + bouton ×) ===
   const toggleCartPopup = () => {
-    let popup = document.getElementById('cart-popup');
-    if (popup) {
-      popup.remove();
+    const existing = document.getElementById('cart-popup');
+    if (existing) {
+      existing.remove();
       return;
     }
     renderCartPopup();
   };
 
+  // === RENDU POPUP (FIXÉ : suppression + total + fermeture partout) ===
   const renderCartPopup = () => {
     document.getElementById('cart-popup')?.remove();
     if (cart.length === 0) return;
 
-    const total = cart.reduce((s, i) => s + i.price, 0).toFixed(2);
+    const total = cart.reduce((sum, item) => sum + item.price, 0).toFixed(2);
+
     const popup = document.createElement('div');
     popup.id = 'cart-popup';
+    popup.style = `
+      position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);
+      display:flex;align-items:center;justify-content:center;z-index:9999;
+    `;
+
     popup.innerHTML = `
-      <div class="popup-header">
-        <strong>Panier (${cart.length})</strong>
-        <button onclick="toggleCartPopup()" style="background:none;border:none;font-size:20px;color:white;">×</button>
-      </div>
-      <div class="popup-items">
-        ${cart.map((item, i) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0;">
-            <div>
-              <strong>${item.name}</strong><br>
-              <small>${item.weight} → ${item.price}€</small>
+      <div style="background:white;width:90%;max-width:400px;border-radius:15px;overflow:hidden;">
+        <div style="background:#25D366;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;">
+          <strong>Panier (${cart.length} article${cart.length > 1 ? 's' : ''})</strong>
+          <button onclick="toggleCartPopup()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">×</button>
+        </div>
+        <div style="max-height:50vh;overflow-y:auto;padding:15px;">
+          ${cart.map((item, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;">
+              <div>
+                <div><strong>${item.name}</strong></div>
+                <small style="color:#666;">${item.weight} → ${item.price}€</small>
+              </div>
+              <button onclick="removeFromCart(${i})" style="background:#e74c3c;color:white;border:none;width:30px;height:30px;border-radius:50%;font-weight:bold;cursor:pointer;">×</button>
             </div>
-            <button onclick="removeFromCart(${i})" style="background:red;color:white;border:none;padding:5px 10px;border-radius:50%;">×</button>
+          `).join('')}
+        </div>
+        <div style="padding:15px;background:#f8f9fa;">
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;margin-bottom:15px;">
+            <span>Total</span>
+            <span>${total}€</span>
           </div>
-        `).join('')}
-      </div>
-      <div class="popup-footer">
-        <strong>Total : ${total}€</strong><br><br>
-        <button id="checkout-btn-popup" style="width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:12px;font-size:16px;">
-          Valider la commande
-        </button>
+          <button id="checkout-btn" style="width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;">
+            Valider la commande
+          </button>
+        </div>
       </div>
     `;
+
+    // === FERMER EN CLIQUANT DEHORS ===
+    popup.addEventListener('click', (e) => {
+      if (e.target === popup) toggleCartPopup();
+    });
+
     document.body.appendChild(popup);
 
-    document.getElementById('checkout-btn-popup')?.addEventListener('click', () => {
+    // === BOUTON VALIDER ===
+    document.getElementById('checkout-btn')?.addEventListener('click', () => {
       window.location.href = "https://telegram-shop-miniapp-networks.vercel.app/";
     });
   };
@@ -148,12 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
     div.className = 'product-card';
     div.dataset.cat = p.category;
     div.innerHTML = `
-      <img src="${p.image}" alt="${p.name}" style="width:100%;border-radius:12px;">
-      <h3>${p.name}</h3>
-      <p>${p.description}</p>
-      <div class="options" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
+      <img src="${p.image}" alt="${p.name}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">
+      <h3 style="margin:10px 0 5px;font-size:18px;">${p.name}</h3>
+      <p style="color:#555;font-size:14px;margin-bottom:10px;">${p.description}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${p.options.map(o => `
-          <button class="add-btn" onclick="addToCart('${p.name.replace(/'/g, "\\'")}', '${o.weight}', ${o.price})">
+          <button class="add-btn" onclick="addToCart('${p.name.replace(/'/g, "\\'")}', '${o.weight}', ${o.price})"
+                  style="background:#25D366;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:14px;cursor:pointer;">
             ${o.weight} → ${o.price}€
           </button>
         `).join('')}
@@ -167,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.onclick = () => {
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      container.innerHTML = '<h2 style="text-align:center;margin:20px 0;">NOS PRODUITS</h2>';
+      container.innerHTML = '<h2 style="text-align:center;margin:20px 0;color:#25D366;">NOS PRODUITS</h2>';
       const filtered = btn.dataset.cat === 'all' ? products : products.filter(p => p.category === btn.dataset.cat);
       filtered.forEach(showProduct);
     };

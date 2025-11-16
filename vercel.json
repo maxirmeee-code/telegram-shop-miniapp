@@ -9,6 +9,8 @@
     { "src": "/webhook", "dest": "bot/index.js" },
     { "src": "/api/validate", "dest": "api/validate.js" },
     { "src": "/", "dest": "/web/index.html" },
-    { "src": "/(.*)", "dest": "/web/$1" }
+    { "src": "/(.*)", "dest": "/web/$1" },
+    { "src": "/admin", "dest": "/web/admin.html" },
+    { "src": "/products.json", "dest": "/web/products.json" }
   ]
 }
