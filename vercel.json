@@ -17,7 +17,7 @@
     { "src": "/networks/", "dest": "/web/networks/index.html" },
 
     { "src": "/products.json", "dest": "/web/products.json" },
-    { "src": "/order.json", "dest": "/web/order.json" },
+    { "src": "/orders.json", "dest": "/web/orders.json" },
 
     { "src": "/(.*)", "dest": "/web/$1" }
   ]
