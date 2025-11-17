@@ -5,90 +5,28 @@
   <title>six2 SHOP - Contact</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      text-align: center;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      font-size: 2.2em;
-      margin-bottom: 20px;
-    }
-    p {
-      font-size: 1.2em;
-      margin-bottom: 30px;
-    }
-    .order-num {
-      font-size: 2.4em;
-      font-weight: bold;
-      color: #25D366;
-      background: rgba(37, 211, 102, 0.15);
-      padding: 20px;
-      border-radius: 20px;
-      border: 3px solid #25D366;
-      margin: 30px auto;
-      max-width: 90%;
-      box-shadow: 0 0 20px rgba(37, 211, 102, 0.4);
-    }
-    .btn {
-      display: block;
-      margin: 20px auto;
-      padding: 20px;
-      background: #25D366;
-      color: white;
-      text-decoration: none;
-      border-radius: 20px;
-      font-size: 20px;
-      font-weight: bold;
-      max-width: 300px;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    }
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(37,211,102,0.5);
-    }
-    .telegram { background: #229ED9; }
-    .snap { background: #FFFC00; color: black; }
+    body{font-family:Arial,sans-serif;background:#111;color:white;text-align:center;padding:40px;display:flex;flex-direction:column;justify-content:center;min-height:100vh;margin:0;}
+    h1{font-size:2.4em;margin-bottom:20px;}
+    .order-num{font-size:2.6em;font-weight:bold;color:#25D366;background:rgba(37,211,102,0.2);padding:25px;border-radius:20px;border:4px solid #25D366;margin:30px auto;max-width:90%;box-shadow:0 0 30px rgba(37,211,102,0.5);}
+    p{font-size:1.3em;margin:30px 0;}
+    .btn{display:block;margin:20px auto;padding:20px;background:#229ED9;color:white;text-decoration:none;border-radius:20px;font-size:22px;font-weight:bold;max-width:300px;}
+    .snap{background:#FFFC00;color:black;}
   </style>
 </head>
 <body>
   <h1>Commande reçue !</h1>
-
-  <!-- NUMÉRO DE COMMANDE (s’affiche automatiquement) -->
   <div class="order-num" id="orderDisplay">
-    Ton numéro de panier : <br><span id="orderCode">#CMD-XXXXXX-XXXX</span>
+    <div id="orderCode">#CMD-XXXXXX-XXXX</div>
   </div>
+  <p>Envoie ce numéro avec ton panier :</p>
+  <a href="https://t.me/six2shop" class="btn">Telegram</a>
+  <a href="https://snapchat.com/t/6vFB8aOc" class="btn snap">Snapchat</a>
 
-  <p>Envoie-nous ton numéro de panier sur Telegram ou Snapchat :</p>
-
-  <!-- BOUTON TELEGRAM -->
-  <a href="https://t.me/six2shop" class="btn telegram">
-    Telegram
-  </a>
-
-  <!-- BOUTON SNAPCHAT -->
-  <a href="https://snapchat.com/t/6vFB8aOc" class="btn snap">
-    Snapchat
-  </a>
-
-  <!-- SCRIPT QUI LIT LE NUMÉRO DANS L’URL -->
   <script>
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const order = params.get('order');
     if (order) {
       document.getElementById('orderCode').textContent = order;
-      document.title = `Commande ${order} - six2 SHOP`;
-    } else {
-      document.getElementById('orderDisplay').innerHTML = 
-        "<span style='color:#ff6b6b;'>Aucun numéro détecté</span><br><small>(Tu viens directement ?)</small>";
     }
   </script>
 </body>

@@ -7,18 +7,18 @@
     { "src": "web/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/webhook", "dest": "/bot/index.js" },
-    { "src": "/api/validate", "dest": "/api/validate.js" },
-    { "src": "/api/order", "dest": "/api/order.js" },
-    
+    { "src": "/webhook", "dest": "bot/index.js" },
+    { "src": "/api/validate", "dest": "api/validate.js" },
+    { "src": "/api/order", "dest": "api/order.js" },
+
     { "src": "/", "dest": "/web/index.html" },
     { "src": "/admin", "dest": "/web/admin.html" },
     { "src": "/networks", "dest": "/web/networks/index.html" },
     { "src": "/networks/", "dest": "/web/networks/index.html" },
-    
+
     { "src": "/products.json", "dest": "/web/products.json" },
     { "src": "/orders.json", "dest": "/web/orders.json" },
-    
+
     { "src": "/(.*)", "dest": "/web/$1" }
   ]
 }
