@@ -1,10 +1,10 @@
-// web/script.js – VERSION 100% FINALE : numéro de commande + redirection correcte
+// web/script.js – VERSION FINALE 100% FONCTIONNELLE SUR TELEGRAM (17/11/2025)
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
   let products = [];
 
-  // Chargement produits depuis JSON
+  // === CHARGEMENT PRODUITS ===
   fetch('/products.json')
     .then(r => r.json())
     .then(data => {
@@ -13,24 +13,25 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(() => alert("Erreur chargement produits"));
 
-  // === AJOUT / SUPPRESSION PANIER ===
+  // === AJOUT AU PANIER ===
   window.addToCart = (name, weight, price) => {
     cart.push({ name, weight, price });
     updateCartIcon();
     Telegram.WebApp.HapticFeedback?.impactOccurred('light');
   };
 
+  // === SUPPRESSION DU PANIER ===
   window.removeFromCart = (index) => {
     cart.splice(index, 1);
     updateCartIcon();
     renderCartPopup();
   };
 
-  // === ICÔNE CADDIE ===
+  // === ICÔNE PANIER ===
   const createCartIcon = () => {
     const icon = document.createElement('div');
     icon.id = 'cart-icon';
-    icon.innerHTML = `<span id="cart-count">0</span>`;
+    icon.innerHTML = `Panier<span id="cart-count">0</span>`;
     icon.style = 'position:fixed;top:20px;right:20px;background:#25D366;color:white;padding:10px 15px;border-radius:50px;cursor:pointer;z-index:1000;font-weight:bold;';
     icon.onclick = toggleCartPopup;
     document.body.appendChild(icon);
@@ -89,57 +90,45 @@ document.addEventListener('DOMContentLoaded', () => {
     popup.addEventListener('click', e => e.target === popup && toggleCartPopup());
     document.body.appendChild(popup);
 
-    // === BOUTON VALIDER – VERSION FINALE (numéro + redirection correcte) ===
+    // === VALIDATION COMMANDE – VERSION QUI MARCHE À 100% SUR TELEGRAM ===
     document.getElementById('checkout-btn').addEventListener('click', async () => {
       if (cart.length === 0) return;
 
       const user = Telegram.WebApp.initDataUnsafe.user || {};
-      const username = user.username || user.first_name || "Anonyme";
-      const total = cart.reduce((s, i) => s + i.price, 0);
+      const totalAmount = cart.reduce((s, i) => s + i.price, 0);
 
-      const order = {
-        username,
+      const payload = {
+        username: user.username || user.first_name || "Anonyme",
         userId: user.id || "inconnu",
         items: cart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
-        total
+        total: totalAmount
       };
 
       try {
         const res = await fetch('/api/order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order })
+          body: JSON.stringify(payload)
         });
 
         const data = await res.json();
 
-	if (data.success) {
-  	
-	const order = {
-  	username,
-  	userId,
-  	initData: Telegram.WebApp.initData, // ← AJOUTÉ POUR VALIDATION
-  	items: cart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
-  	total
-	};
-  	alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
-  
-  	// REDIRECTION FORCÉE (avant de fermer le popup → marche à 100% sur Telegram)
-  	window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${orderNum}`;
-  	
-  	// On vide le panier et ferme après (mais la redirection est déjà lancée)
-  	cart = [];
-  	updateCartIcon();
-  	setTimeout(toggleCartPopup, 500); // petite sécurité
-	}
+        if (data.success && data.orderNumber) {
+          const num = data.orderNumber;
+          alert(`Commande validée !\n\nTon numéro de panier :\n${num}\n\nEnvoie-le avec ton panier !`);
+          
+          // Redirection directe
+          window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${num}`;
 
-
-
- else {
-          alert("Erreur envoi. Réessaie.");
+          // Vidage panier
+          cart = [];
+          updateCartIcon();
+          toggleCartPopup();
+        } else {
+          alert("Erreur envoi : " + (data.error || "serveur"));
         }
       } catch (err) {
-        alert("Erreur réseau.");
+        alert("Erreur réseau – réessaie dans 5 secondes");
       }
     });
   };
@@ -165,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(div);
   };
 
-  // === FILTRE CATÉGORIES ===
+  // === FILTRES CATÉGORIES ===
   document.querySelectorAll('.cat-btn').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
@@ -180,12 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
   createCartIcon();
   updateCartIcon();
 
+  // Chargement auto au démarrage
   if (window.Telegram?.WebApp?.initData) {
-    fetch('/api/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: Telegram.WebApp.initData }) })
-      .then(r => r.json())
-      .then(data => { if (data.valid) { document.querySelector('.cat-btn[data-cat="all"]')?.click(); Telegram.WebApp.ready(); } })
-      .catch(() => document.querySelector('.cat-btn[data-cat="all"]')?.click());
-  } else {
-    document.querySelector('.cat-btn[data-cat="all"]')?.click();
+    Telegram.WebApp.ready();
   }
+  document.querySelector('.cat-btn[data-cat="all"]')?.click();
 });
