@@ -3,15 +3,22 @@
   "builds": [
     { "src": "bot/index.js", "use": "@vercel/node" },
     { "src": "api/validate.js", "use": "@vercel/node" },
+    { "src": "api/order.js", "use": "@vercel/node" },
     { "src": "web/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/webhook", "dest": "bot/index.js" },
-    { "src": "/api/validate", "dest": "api/validate.js" },
+    { "src": "/webhook", "dest": "/bot/index.js" },
+    { "src": "/api/validate", "dest": "/api/validate.js" },
+    { "src": "/api/order", "dest": "/api/order.js" },
+    
     { "src": "/", "dest": "/web/index.html" },
-    { "src": "/(.*)", "dest": "/web/$1" },
-    { "src": "/networks", "dest": "/web/networks/index.html" },
     { "src": "/admin", "dest": "/web/admin.html" },
-    { "src": "/products.json", "dest": "/web/products.json" }
+    { "src": "/networks", "dest": "/web/networks/index.html" },
+    { "src": "/networks/", "dest": "/web/networks/index.html" },
+    
+    { "src": "/products.json", "dest": "/web/products.json" },
+    { "src": "/orders.json", "dest": "/web/orders.json" },
+    
+    { "src": "/(.*)", "dest": "/web/$1" }
   ]
 }
