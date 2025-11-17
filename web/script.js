@@ -113,17 +113,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await res.json();
 
-        if (data.success) {
-          const orderNum = data.orderNumber;
-          alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
-          
-          // REDIRECTION VERS LE BON PROJET (le tien actuel)
-          window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${orderNum}`;
+	if (data.success) {
+  	const orderNum = data.orderNumber;
+  	alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
+  
+  	// REDIRECTION FORCÉE (avant de fermer le popup → marche à 100% sur Telegram)
+  	window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${orderNum}`;
+  	
+  	// On vide le panier et ferme après (mais la redirection est déjà lancée)
+  	cart = [];
+  	updateCartIcon();
+  	setTimeout(toggleCartPopup, 500); // petite sécurité
+	}
 
-          cart = [];
-          updateCartIcon();
-          toggleCartPopup();
-        } else {
+
+
+ else {
           alert("Erreur envoi. Réessaie.");
         }
       } catch (err) {
