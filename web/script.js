@@ -1,4 +1,4 @@
-// web/script.js – VERSION FINALE : Numéro de commande + envoi propre sans token client
+// web/script.js – VERSION CORRIGÉE ET FINALE (produits + numéro de commande)
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.appendChild(popup);
 
-    // === NOUVELLE VERSION VALIDER : Numéro de commande + envoi via /api/order (sans token client) ===
+    // === VALIDER LA COMMANDE : Numéro + envoi propre ===
     document.getElementById('checkout-btn').addEventListener('click', async () => {
       if (cart.length === 0) return;
 
@@ -131,29 +131,27 @@ document.addEventListener('DOMContentLoaded', () => {
           const orderNum = data.orderNumber;
           alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
           
-          // Redirection vers networks avec le numéro
           window.location.href = `/networks/?order=${orderNum}`;
 
-          // Vide le panier
           cart = [];
           updateCartIcon();
           toggleCartPopup();
         } else {
-          alert("Erreur lors de l'envoi. Réessaie plus tard.");
+          alert("Erreur envoi. Réessaie plus tard.");
         }
       } catch (err) {
-        alert("Erreur réseau. Vérifie ta connexion.");
+        alert("Erreur réseau.");
         console.error(err);
       }
     });
   };
 
-  // === AFFICHAGE PRODUIT ===
+  // === AFFICHAGE PRODUIT – CORRIGÉ : parenthèse en trop supprimée ! ===
   const showProduct = (p) => {
     const div = document.createElement('div');
     div.className = 'product-card';
     div.dataset.cat = p.category;
-    div.innerHTML =(`
+    div.innerHTML = `
       <img src="${p.image}" alt="${p.name}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">
       <h3 style="margin:10px 0 5px;font-size:18px;">${p.name}</h3>
       <p style="color:#555;font-size:14px;margin-bottom:10px;">${p.description}</p>
