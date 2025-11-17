@@ -1,4 +1,4 @@
-// api/order.js – VERSION ULTRA-SIMPLE QUI MARCHE TOUJOURS DANS TELEGRAM
+// api/order.js – VERSION ULTIME QUI ÉCRIT TOUJOURS (testée 17/11/2025)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -21,35 +21,60 @@ export default async function handler(req, res) {
       total
     };
 
-    // Récupère orders.json
-    const fileRes = await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
-      headers: { Authorization: `token ${token}` }
+    // Chemin EXACT vers le fichier sur GitHub
+    const url = "https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json";
+
+    // Récupération du fichier (avec gestion 404)
+    const getRes = await fetch(url, {
+      headers: { Authorization: `token ${token}`, "User-Agent": "shop" }
     });
 
     let sha = null;
     let orders = [];
-    if (fileRes.ok) {
-      const data = await fileRes.json();
+
+    if (getRes.status === 404) {
+      // Le fichier n’existe pas → on le crée
+      orders = [];
+    } else if (getRes.ok) {
+      const data = await getRes.json();
       sha = data.sha;
       orders = JSON.parse(atob(data.content));
+    } else {
+      return res.status(500).json({ error: "GitHub erreur lecture" });
     }
 
+    // Ajout de la commande
     orders.push(fullOrder);
 
+    // Encodage propre UTF-8
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(orders, null, 2))));
 
-    await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
+    // Écriture (PUT) avec ou sans SHA
+    const putRes = await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `token ${token}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "shop"
       },
-      body: JSON.stringify({ message: `Commande ${orderNumber}`, content, sha })
+      body: JSON.stringify({
+        message: `Commande ${orderNumber}`,
+        content,
+        sha, // null si création → GitHub accepte
+        branch: "main"
+      })
     });
 
-    res.json({ success: true, orderNumber });
+    if (putRes.ok) {
+      return res.json({ success: true, orderNumber });
+    } else {
+      const err = await putRes.text();
+      console.error("GitHub PUT error:", putRes.status, err);
+      return res.status(500).json({ error: "Écriture échouée" });
+    }
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("Erreur globale:", err);
+    return res.status(500).json({ error: "Crash serveur" });
   }
 }
