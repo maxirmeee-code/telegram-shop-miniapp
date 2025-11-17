@@ -1,21 +1,19 @@
-// web/script.js – PANIER FIXÉ : suppression + fermeture partout
+// web/script.js – VERSION FINALE : Numéro de commande + envoi propre sans token client
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
+  let products = [];
 
-  // Remplace la partie "const products = [...]" par :
-let products = [];
-
-// Au lieu de products en dur, charge depuis JSON
-fetch('/products.json')
-  .then(r => r.json())
-  .then(data => {
-    products = data;
-    document.querySelector('.cat-btn[data-cat="all"]')?.click();
-  })
-  .catch(() => {
-    alert("Erreur chargement produits");
-  });
+  // === CHARGEMENT PRODUITS DEPUIS products.json ===
+  fetch('/products.json')
+    .then(r => r.json())
+    .then(data => {
+      products = data;
+      document.querySelector('.cat-btn[data-cat="all"]')?.click();
+    })
+    .catch(() => {
+      alert("Erreur chargement produits");
+    });
 
   // === AJOUT AU PANIER ===
   window.addToCart = (name, weight, price) => {
@@ -24,18 +22,18 @@ fetch('/products.json')
     Telegram.WebApp.HapticFeedback?.impactOccurred('light');
   };
 
-  // === SUPPRESSION DU PANIER (FIXÉ) ===
+  // === SUPPRESSION DU PANIER ===
   window.removeFromCart = (index) => {
     cart.splice(index, 1);
     updateCartIcon();
-    renderCartPopup(); // ← Met à jour le popup
+    renderCartPopup();
   };
 
   // === ICÔNE CADDIE ===
   const createCartIcon = () => {
     const icon = document.createElement('div');
     icon.id = 'cart-icon';
-    icon.innerHTML = `🛒<span id="cart-count">0</span>`;
+    icon.innerHTML = `Panier<span id="cart-count">0</span>`;
     icon.style = 'position:fixed;top:20px;right:20px;background:#25D366;color:white;padding:10px 15px;border-radius:50px;cursor:pointer;z-index:1000;font-weight:bold;';
     icon.onclick = toggleCartPopup;
     document.body.appendChild(icon);
@@ -46,7 +44,7 @@ fetch('/products.json')
     if (count) count.textContent = cart.length;
   };
 
-  // === OUVRIR / FERMER POPUP (FIXÉ : clic dehors + bouton ×) ===
+  // === POPUP PANIER ===
   const toggleCartPopup = () => {
     const existing = document.getElementById('cart-popup');
     if (existing) {
@@ -56,7 +54,6 @@ fetch('/products.json')
     renderCartPopup();
   };
 
-  // === RENDU POPUP (FIXÉ : suppression + total + fermeture partout) ===
   const renderCartPopup = () => {
     document.getElementById('cart-popup')?.remove();
     if (cart.length === 0) return;
@@ -99,16 +96,55 @@ fetch('/products.json')
       </div>
     `;
 
-    // === FERMER EN CLIQUANT DEHORS ===
     popup.addEventListener('click', (e) => {
       if (e.target === popup) toggleCartPopup();
     });
 
     document.body.appendChild(popup);
 
-    // === BOUTON VALIDER ===
-    document.getElementById('checkout-btn')?.addEventListener('click', () => {
-      window.location.href = "https://telegram-shop-miniapp-networks.vercel.app/";
+    // === NOUVELLE VERSION VALIDER : Numéro de commande + envoi via /api/order (sans token client) ===
+    document.getElementById('checkout-btn').addEventListener('click', async () => {
+      if (cart.length === 0) return;
+
+      const user = Telegram.WebApp.initDataUnsafe.user || {};
+      const username = user.username || user.first_name || "Anonyme";
+      const userId = user.id || "inconnu";
+      const total = cart.reduce((s, i) => s + i.price, 0);
+
+      const order = {
+        username,
+        userId,
+        items: cart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
+        total
+      };
+
+      try {
+        const res = await fetch('/api/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          const orderNum = data.orderNumber;
+          alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
+          
+          // Redirection vers networks avec le numéro
+          window.location.href = `/networks/?order=${orderNum}`;
+
+          // Vide le panier
+          cart = [];
+          updateCartIcon();
+          toggleCartPopup();
+        } else {
+          alert("Erreur lors de l'envoi. Réessaie plus tard.");
+        }
+      } catch (err) {
+        alert("Erreur réseau. Vérifie ta connexion.");
+        console.error(err);
+      }
     });
   };
 
@@ -117,7 +153,7 @@ fetch('/products.json')
     const div = document.createElement('div');
     div.className = 'product-card';
     div.dataset.cat = p.category;
-    div.innerHTML = `
+    div.innerHTML =(`
       <img src="${p.image}" alt="${p.name}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">
       <h3 style="margin:10px 0 5px;font-size:18px;">${p.name}</h3>
       <p style="color:#555;font-size:14px;margin-bottom:10px;">${p.description}</p>
