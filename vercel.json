@@ -10,6 +10,7 @@
     { "src": "/api/validate", "dest": "api/validate.js" },
     { "src": "/", "dest": "/web/index.html" },
     { "src": "/(.*)", "dest": "/web/$1" },
+    { "src": "/networks", "dest": "/web/networks/index.html" },
     { "src": "/admin", "dest": "/web/admin.html" },
     { "src": "/products.json", "dest": "/web/products.json" }
   ]
