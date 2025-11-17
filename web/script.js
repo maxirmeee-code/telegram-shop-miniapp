@@ -114,7 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
 	if (data.success) {
-  	const orderNum = data.orderNumber;
+  	
+	const order = {
+  	username,
+  	userId,
+  	initData: Telegram.WebApp.initData, // ← AJOUTÉ POUR VALIDATION
+  	items: cart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
+  	total
+	};
   	alert(`Commande validée !\n\nTon numéro de panier :\n${orderNum}\n\nEnvoie-le avec ton panier !`);
   
   	// REDIRECTION FORCÉE (avant de fermer le popup → marche à 100% sur Telegram)
