@@ -1,9 +1,12 @@
-// api/order.js – UPSTASH REDIS (remplace KV)
+// api/order.js – FIXED RÉSEAU : No retry + timeout 5s (Upstash 2025)
 import { Redis } from '@upstash/redis';
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
+  retry: false,  // ← DÉSACTIVE LE RETRY AUTO (fix 5s hang)
+  connectTimeout: 5000,  // ← Timeout 5s
+  commandTimeout: 5000
 });
 
 export default async function handler(req, res) {
@@ -25,13 +28,12 @@ export default async function handler(req, res) {
       total
     };
 
-    // Écriture instantanée dans Redis
-    const orders = (await redis.get('orders')) || [];
-    orders.push(order);
-    await redis.set('orders', orders);
+    // Écriture avec timeout
+    await redis.set('orders', order);  // ← Simple set (pas de get/set complexe)
 
     res.json({ success: true, orderNumber });
   } catch (err) {
-    res.status(500).json({ error: "Erreur Upstash" });
+    console.error("Redis error:", err.message);
+    res.status(500).json({ error: "Erreur Redis – réessaie" });
   }
 }
