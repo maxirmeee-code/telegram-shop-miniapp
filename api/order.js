@@ -1,18 +1,22 @@
-// api/order.js – VERSION ULTRA-SIMPLE QUI MARCHE TOUJOURS DANS TELEGRAM
+// api/order.js – UPSTASH REDIS (remplace KV)
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN
+});
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { username, userId, items, total } = req.body;
-  if (!items || items.length === 0) return res.status(400).json({ error: "Panier vide" });
-
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) return res.status(500).json({ error: "Token manquant" });
+  if (!items?.length) return res.status(400).json({ error: "Panier vide" });
 
   try {
     const now = new Date();
     const orderNumber = `CMD-${now.toISOString().slice(2,10).replace(/-/g,'')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
 
-    const fullOrder = {
+    const order = {
       orderNumber,
       timestamp: now.toLocaleString('fr-FR'),
       username: username || "Anonyme",
@@ -21,35 +25,13 @@ export default async function handler(req, res) {
       total
     };
 
-    // Récupère orders.json
-    const fileRes = await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
-      headers: { Authorization: `token ${token}` }
-    });
-
-    let sha = null;
-    let orders = [];
-    if (fileRes.ok) {
-      const data = await fileRes.json();
-      sha = data.sha;
-      orders = JSON.parse(atob(data.content));
-    }
-
-    orders.push(fullOrder);
-
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(orders, null, 2))));
-
-    await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: `Commande ${orderNumber}`, content, sha })
-    });
+    // Écriture instantanée dans Redis
+    const orders = (await redis.get('orders')) || [];
+    orders.push(order);
+    await redis.set('orders', orders);
 
     res.json({ success: true, orderNumber });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erreur serveur" });
+    res.status(500).json({ error: "Erreur Upstash" });
   }
 }

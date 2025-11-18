@@ -101,36 +101,15 @@
     let products = [];
 
     // === CHARGEMENT COMMANDES ===
-    async function loadOrders() {
-      try {
-        const res = await fetch('/orders.json?t=' + Date.now());
-        if (!res.ok) throw new Error("Pas de fichier");
-        const orders = await res.json();
-
-        // Tri par date (plus récent en haut)
-        orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        document.getElementById('orders-list').innerHTML = orders.map(order => `
-          <div class="order-card">
-            <div class="order-number">${order.orderNumber || 'CMD-ERR'}</div>
-            <div class="order-time">${order.timestamp}</div>
-            <div class="order-client">@${order.username || 'Anonyme'} (ID: ${order.userId})</div>
-            <div style="margin:15px 0;">
-              ${order.items.map(item => `
-                <div class="order-item">
-                  <span>• <strong>${item.name}</strong> (${item.weight})</span>
-                  <span>${item.price}€</span>
-                </div>
-              `).join('')}
-            </div>
-            <div class="order-total">TOTAL : ${order.total}€</div>
-          </div>
-        `).join('') || "<p style='text-align:center;color:#666;'>Aucune commande pour le moment</p>";
-      } catch (err) {
-        document.getElementById('orders-list').innerHTML = "<p style='color:#ff6b6b;text-align:center;'>Erreur chargement commandes</p>";
-      }
-    }
-
+   async function loadOrders() {
+  try {
+    const res = await fetch('/api/orders');
+    const orders = await res.json();
+    renderOrders(orders);
+  } catch (err) {
+    document.getElementById('orders-list').innerHTML = "<p style='color:#999;text-align:center;'>Aucune commande</p>";
+  }
+}
     function login() {
       if (document.getElementById('password').value === PASSWORD) {
         document.getElementById('admin-panel').style.display = 'block';
