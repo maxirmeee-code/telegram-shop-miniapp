@@ -87,50 +87,48 @@ document.addEventListener('DOMContentLoaded', () => {
     popup.addEventListener('click', e => e.target === popup && toggleCartPopup());
     document.body.appendChild(popup);
 
-    // === VALIDATION COMMANDE – FIX "Panier vide" + envoi correct ===
-    document.getElementById('checkout-btn').addEventListener('click', async () => {
-      if (cart.length === 0) {
-        alert("Ton panier est vide !");
-        return;
-      }
+    document.getElementById('checkout-btn')?.addEventListener('click', async () => {
+  if (cart.length === 0) {
+    alert("Ton panier est vide !");
+    return;
+  }
 
-      const user = Telegram.WebApp.initDataUnsafe.user || {};
-      const totalAmount = cart.reduce((s, i) => s + i.price, 0);
+  const user = Telegram.WebApp.initDataUnsafe.user || {};
+  const total = cart.reduce((s, i) => s + i.price, 0);
 
-      const payload = {
-        username: user.username || user.first_name || "Anonyme",
-        userId: user.id || "inconnu",
-        items: cart.map(i => ({
-          name: i.name,
-          weight: i.weight,
-          price: i.price
-        })),
-        total: totalAmount
-      };
-
-      try {
-        const res = await fetch('/api/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (data.success && data.orderNumber) {
-          alert(`Commande validée !\n\nTon numéro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
-          window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
-          cart = [];
-          updateCartIcon();
-          toggleCartPopup();
-        } else {
-          alert("Erreur envoi : " + (data.error || "serveur"));
-        }
-      } catch (err) {
-        alert("Erreur réseau – réessaie");
-      }
-    });
+  const payload = {
+    username: user.username || user.first_name || "Anonyme",
+    userId: user.id || "inconnu",
+    items: cart.map(i => ({          // ← FORMAT EXACT ATTENDU PAR L'API
+      name: i.name,
+      weight: i.weight,
+      price: i.price
+    })),
+    total: total
   };
+
+  try {
+    const res = await fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert(`Commande validée !\n\nNuméro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
+      window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
+      cart = [];
+      updateCartIcon();
+      toggleCartPopup();
+    } else {
+      alert("Erreur envoi : " + (data.error || "serveur"));
+    }
+  } catch (err) {
+    alert("Erreur réseau – réessaie");
+  }
+});
 
   // === AFFICHAGE PRODUITS ===
   const showProduct = (p) => {
