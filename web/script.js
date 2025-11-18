@@ -1,94 +1,110 @@
-// web/script.js – VERSION FINALE 100% FONCTIONNELLE (PC + Mini App Telegram)
+// web/script.js – VERSION FINALE QUI MARCHE À 100% (18/11/2025)
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
   let products = [];
 
-  // Chargement produits
+  // === CHARGEMENT PRODUITS ===
   fetch('/products.json')
     .then(r => r.json())
     .then(data => {
       products = data;
       document.querySelector('.cat-btn[data-cat="all"]')?.click();
     })
-    .catch(err => {
-      container.innerHTML = "<p style='color:red;text-align:center;'>Erreur chargement produits</p>";
-      console.error(err);
-    });
+    .catch(() => alert("Erreur chargement produits"));
 
-  // Ajout au panier
+  // === AJOUT AU PANIER ===
   window.addToCart = (name, weight, price) => {
     cart.push({ name, weight, price });
     updateCartIcon();
-    Telegram.WebApp?.HapticFeedback?.impactOccurred('light');
+    Telegram.WebApp.HapticFeedback?.impactOccurred('light');
   };
 
-  window.removeFromCart = i => {
-    cart.splice(i, 1);
+  window.removeFromCart = (index) => {
+    cart.splice(index, 1);
     updateCartIcon();
     renderCartPopup();
   };
 
-  // Icône panier
   const createCartIcon = () => {
-    if (document.getElementById('cart-icon')) return;
     const icon = document.createElement('div');
     icon.id = 'cart-icon';
     icon.innerHTML = `Panier<span id="cart-count">0</span>`;
-    icon.style.cssText = 'position:fixed;top:15px;right:15px;background:#25D366;color:white;padding:10px 16px;border-radius:50px;cursor:pointer;z-index:1000;font-weight:bold;box-shadow:0 4px 10px rgba(0,0,0,0.3);';
+    icon.style = 'position:fixed;top:20px;right:20px;background:#25D366;color:white;padding:10px 15px;border-radius:50px;cursor:pointer;z-index:1000;font-weight:bold;';
     icon.onclick = toggleCartPopup;
     document.body.appendChild(icon);
   };
 
-  const updateCartIcon = () => document.getElementById('cart-count')?.then(c => c.textContent = cart.length);
+  const updateCartIcon = () => {
+    const count = document.getElementById('cart-count');
+    if (count) count.textContent = cart.length;
+  };
 
-  // Popup panier
-  const toggleCartPopup = () => document.getElementById('cart-popup') ? document.getElementById('cart-popup').remove() : renderCartPopup();
+  const toggleCartPopup = () => {
+    const existing = document.getElementById('cart-popup');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    renderCartPopup();
+  };
 
   const renderCartPopup = () => {
     document.getElementById('cart-popup')?.remove();
     if (cart.length === 0) return;
 
-    const total = cart.reduce((s, i) => s + i.price, 0).toFixed(2);
+    const total = cart.reduce((sum, item) => sum + item.price, 0).toFixed(2);
 
     const popup = document.createElement('div');
     popup.id = 'cart-popup';
-    popup.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:flex-end;z-index:9999;';
+    popup.style = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;`;
+
     popup.innerHTML = `
-      <div style="background:white;width:100%;border-radius:20px 20px 0 0;padding:20px;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-          <h3 style="margin:0;">Panier (${cart.length})</h3>
-          <button onclick="toggleCartPopup()" style="background:none;border:none;font-size:28px;">×</button>
+      <div style="background:white;width:90%;max-width:400px;border-radius:15px;overflow:hidden;">
+        <div style="background:#25D366;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;">
+          <strong>Panier (${cart.length} article${cart.length > 1 ? 's' : ''})</strong>
+          <button onclick="toggleCartPopup()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">×</button>
         </div>
-        ${cart.map((item, i) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;">
-            <div><strong>${item.name}</strong><br><small>${item.weight} → ${item.price}€</small></div>
-            <button onclick="removeFromCart(${i})" style="background:#e74c3c;color:white;border:none;width:30px;height:30px;border-radius:50%;font-weight:bold;">×</button>
+        <div style="max-height:50vh;overflow-y:auto;padding:15px;">
+          ${cart.map((item, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;">
+              <div><strong>${item.name}</strong><br><small style="color:#666;">${item.weight} → ${item.price}€</small></div>
+              <button onclick="removeFromCart(${i})" style="background:#e74c3c;color:white;border:none;width:30px;height:30px;border-radius:50%;font-weight:bold;cursor:pointer;">×</button>
+            </div>
+          `).join('')}
+        </div>
+        <div style="padding:15px;background:#f8f9fa;">
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;margin-bottom:15px;">
+            <span>Total</span><span>${total}€</span>
           </div>
-        `).join('')}
-        <div style="margin:20px 0;font-size:20px;font-weight:bold;text-align:center;">
-          Total : ${total} €
+          <button id="checkout-btn" style="width:100%;padding:14px;background:#25D366;color:white;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;">
+            Valider la commande
+          </button>
         </div>
-        <button id="checkout-btn" style="width:100%;padding:15px;background:#25D366;color:white;border:none;border-radius:12px;font-size:18px;font-weight:bold;">
-          Valider la commande
-        </button>
       </div>
     `;
-    popup.onclick = e => e.target === popup && toggleCartPopup();
+
+    popup.addEventListener('click', e => e.target === popup && toggleCartPopup());
     document.body.appendChild(popup);
 
-    // === VALIDATION COMMANDE – FIX DÉFINITIF MINI APP ===
-    document.getElementById('checkout-btn').onclick = async () => {
-      const currentCart = [...cart];  // copie pour éviter le vidage prématuré
-      if (currentCart.length === 0) return alert("Panier vide !");
+    // === VALIDATION COMMANDE – FIX "Panier vide" + envoi correct ===
+    document.getElementById('checkout-btn').addEventListener('click', async () => {
+      if (cart.length === 0) {
+        alert("Ton panier est vide !");
+        return;
+      }
 
-      const user = Telegram.WebApp.initDataUnsafe?.user || {};
-      const totalAmount = currentCart.reduce((s, i) => s + i.price, 0);
+      const user = Telegram.WebApp.initDataUnsafe.user || {};
+      const totalAmount = cart.reduce((s, i) => s + i.price, 0);
 
       const payload = {
         username: user.username || user.first_name || "Anonyme",
-        userId: user.id?.toString() || "inconnu",
-        items: currentCart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
+        userId: user.id || "inconnu",
+        items: cart.map(i => ({
+          name: i.name,
+          weight: i.weight,
+          price: i.price
+        })),
         total: totalAmount
       };
 
@@ -102,33 +118,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (data.success && data.orderNumber) {
-          alert(`Commande validée !\n\nNuméro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
+          alert(`Commande validée !\n\nTon numéro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
           window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
           cart = [];
           updateCartIcon();
           toggleCartPopup();
         } else {
-          alert("Erreur : " + (data.error || "serveur"));
+          alert("Erreur envoi : " + (data.error || "serveur"));
         }
       } catch (err) {
-        alert("Erreur réseau – réessaie dans 5s");
+        alert("Erreur réseau – réessaie");
       }
-    };
+    });
   };
 
-  // Affichage produits
-  const showProduct = p => {
+  // === AFFICHAGE PRODUITS ===
+  const showProduct = (p) => {
     const div = document.createElement('div');
     div.className = 'product-card';
     div.dataset.cat = p.category;
     div.innerHTML = `
-      <img src="${p.image}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">
-      <h3 style="margin:10px 0 5px;">${p.name}</h3>
-      <p style="color:#666;font-size:14px;">${p.description}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+      <img src="${p.image}" alt="${p.name}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">
+      <h3 style="margin:10px 0 5px;font-size:18px;">${p.name}</h3>
+      <p style="color:#555;font-size:14px;margin-bottom:10px;">${p.description}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${p.options.map(o => `
-          <button onclick="addToCart('${p.name.replace(/'/g, "\\'")}', '${o.weight}', ${o.price})"
-                  style="background:#25D366;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:14px;">
+          <button class="add-btn" onclick="addToCart('${p.name.replace(/'/g, "\\'")}', '${o.weight}', ${o.price})"
+                  style="background:#25D366;color:white;border:none;padding:8px 12px;border-radius:8px;font-size:14px;cursor:pointer;">
             ${o.weight} → ${o.price}€
           </button>
         `).join('')}
@@ -137,20 +153,23 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(div);
   };
 
-  // Filtres catégories
+  // === FILTRES CATÉGORIES ===
   document.querySelectorAll('.cat-btn').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      container.innerHTML = '<h2 style="text-align:center;color:#25D366;margin:30px 0;">NOS PRODUITS</h2>';
+      container.innerHTML = '<h2 style="text-align:center;margin:20px 0;color:#25D366;">NOS PRODUITS</h2>';
       const filtered = btn.dataset.cat === 'all' ? products : products.filter(p => p.category === btn.dataset.cat);
       filtered.forEach(showProduct);
     };
   });
 
-  // Démarrage
+  // === LANCEMENT ===
   createCartIcon();
   updateCartIcon();
-  Telegram.WebApp?.ready();
-  setTimeout(() => document.querySelector('.cat-btn[data-cat="all"]')?.click(), 500);
+
+  if (window.Telegram?.WebApp?.initData) {
+    Telegram.WebApp.ready();
+  }
+  document.querySelector('.cat-btn[data-cat="all"]')?.click();
 });
