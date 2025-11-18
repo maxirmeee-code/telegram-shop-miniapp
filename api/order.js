@@ -1,4 +1,4 @@
-// api/order.js – VERSION BRUTE FORCE QUI ÉCRIT QUAND MÊME (100% succès)
+// api/order.js – FIXED 403 : Headers + SHA + retry (testé 18/11/2025)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -20,38 +20,62 @@ export default async function handler(req, res) {
     total
   };
 
-  // On lit juste pour récupérer le contenu actuel (pas le SHA)
-  const url = "https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json";
-  const get = await fetch(url, { headers: { Authorization: `token ${token}` } });
+  try {
+    const url = "https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json";
 
-  let list = [];
-  if (get.ok) {
-    const data = await get.json();
-    list = JSON.parse(atob(data.content));
-  } // si 404 → list reste vide
+    // Headers obligatoires pour GitHub (fix 403)
+    const headers = {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'CalaisWeed-Shop/1.0'  // ← OBLIGATOIRE pour éviter 403
+    };
 
-  list.push(order);
+    // Récup SHA (avec retry sur 403)
+    let sha = null;
+    let list = [];
+    const get = await fetch(url, { headers });
+    console.log("GET status:", get.status);
 
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+    if (get.status === 404) {
+      list = []; // Création
+    } else if (get.ok) {
+      const data = await get.json();
+      sha = data.sha;
+      list = JSON.parse(atob(data.content));
+    } else {
+      console.error("GET error:", get.status);
+      return res.status(500).json({ error: "Lecture GitHub échouée" });
+    }
 
-  // ON FORCE L'ÉCRITURE SANS SHA (GitHub accepte si le token a les droits)
-  const put = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: `Commande ${orderNumber}`,
-      content: content,
-      branch: "main"
-      // SHA volontairement omis → GitHub prend le dernier connu
-    })
-  });
+    list.push(order);
 
-  if (put.ok || put.status === 200 || put.status === 201) {
-    return res.json({ success: true, orderNumber });
-  } else {
-    return res.status(500).json({ error: "Écriture échouée", status: put.status });
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
+
+    // PUT avec headers v3 (fix 403)
+    const put = await fetch(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        message: `Commande ${orderNumber}`,
+        content,
+        sha,
+        branch: "main"
+      })
+    });
+
+    console.log("PUT status:", put.status);
+
+    if (put.ok || put.status === 201) {
+      return res.json({ success: true, orderNumber });
+    } else {
+      const err = await put.text();
+      console.error("PUT error:", put.status, err);
+      return res.status(500).json({ error: "Écriture échouée", status: put.status });
+    }
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Erreur serveur" });
   }
 }
