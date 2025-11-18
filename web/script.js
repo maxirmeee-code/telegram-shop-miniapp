@@ -1,4 +1,4 @@
-// web/script.js – VERSION FINALE 100% FONCTIONNELLE SUR TELEGRAM (17/11/2025)
+// web/script.js – VERSION FINALE QUI MARCHE À 100% (18/11/2025)
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('products');
   let cart = [];
@@ -20,14 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     Telegram.WebApp.HapticFeedback?.impactOccurred('light');
   };
 
-  // === SUPPRESSION DU PANIER ===
   window.removeFromCart = (index) => {
     cart.splice(index, 1);
     updateCartIcon();
     renderCartPopup();
   };
 
-  // === ICÔNE PANIER ===
   const createCartIcon = () => {
     const icon = document.createElement('div');
     icon.id = 'cart-icon';
@@ -42,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (count) count.textContent = cart.length;
   };
 
-  // === POPUP PANIER ===
   const toggleCartPopup = () => {
     const existing = document.getElementById('cart-popup');
     if (existing) {
@@ -90,9 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
     popup.addEventListener('click', e => e.target === popup && toggleCartPopup());
     document.body.appendChild(popup);
 
-    // === VALIDATION COMMANDE – VERSION QUI MARCHE À 100% SUR TELEGRAM ===
+    // === VALIDATION COMMANDE – FIX "Panier vide" + envoi correct ===
     document.getElementById('checkout-btn').addEventListener('click', async () => {
-      if (cart.length === 0) return;
+      if (cart.length === 0) {
+        alert("Ton panier est vide !");
+        return;
+      }
 
       const user = Telegram.WebApp.initDataUnsafe.user || {};
       const totalAmount = cart.reduce((s, i) => s + i.price, 0);
@@ -100,7 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const payload = {
         username: user.username || user.first_name || "Anonyme",
         userId: user.id || "inconnu",
-        items: cart.map(i => ({ name: i.name, weight: i.weight, price: i.price })),
+        items: cart.map(i => ({
+          name: i.name,
+          weight: i.weight,
+          price: i.price
+        })),
         total: totalAmount
       };
 
@@ -114,13 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (data.success && data.orderNumber) {
-          const num = data.orderNumber;
-          alert(`Commande validée !\n\nTon numéro de panier :\n${num}\n\nEnvoie-le avec ton panier !`);
-          
-          // Redirection directe
-          window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${num}`;
-
-          // Vidage panier
+          alert(`Commande validée !\n\nTon numéro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
+          window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
           cart = [];
           updateCartIcon();
           toggleCartPopup();
@@ -128,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
           alert("Erreur envoi : " + (data.error || "serveur"));
         }
       } catch (err) {
-        alert("Erreur réseau – réessaie dans 5 secondes");
+        alert("Erreur réseau – réessaie");
       }
     });
   };
 
-  // === AFFICHAGE PRODUIT ===
+  // === AFFICHAGE PRODUITS ===
   const showProduct = (p) => {
     const div = document.createElement('div');
     div.className = 'product-card';
@@ -169,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
   createCartIcon();
   updateCartIcon();
 
-  // Chargement auto au démarrage
   if (window.Telegram?.WebApp?.initData) {
     Telegram.WebApp.ready();
   }
