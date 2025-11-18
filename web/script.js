@@ -87,20 +87,23 @@ document.addEventListener('DOMContentLoaded', () => {
     popup.addEventListener('click', e => e.target === popup && toggleCartPopup());
     document.body.appendChild(popup);
 
-    // === VALIDATION COMMANDE – FIX "Panier vide" + envoi correct ===
+        // === VALIDATION COMMANDE – FIX 100% MINI APP TELEGRAM ===
     document.getElementById('checkout-btn').addEventListener('click', async () => {
-      if (cart.length === 0) {
-        alert("Ton panier est vide !");
+      // On sauvegarde le panier AVANT toute manipulation du DOM
+      const currentCart = [...cart];  // ← copie profonde
+
+      if (currentCart.length === 0) {
+        alert("Panier vide !");
         return;
       }
 
-      const user = Telegram.WebApp.initDataUnsafe.user || {};
-      const totalAmount = cart.reduce((s, i) => s + i.price, 0);
+      const user = Telegram.WebApp.initDataUnsafe?.user || {};
+      const totalAmount = currentCart.reduce((s, i) => s + i.price, 0);
 
       const payload = {
         username: user.username || user.first_name || "Anonyme",
-        userId: user.id || "inconnu",
-        items: cart.map(i => ({
+        userId: user.id?.toString() || "inconnu",
+        items: currentCart.map(i => ({
           name: i.name,
           weight: i.weight,
           price: i.price
@@ -118,19 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (data.success && data.orderNumber) {
-          alert(`Commande validée !\n\nTon numéro : ${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
+          alert(`Commande validée !\n\nTon numéro :\n${data.orderNumber}\n\nEnvoie-le avec ton panier !`);
           window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
-          cart = [];
+          cart = [];  // ← on vide SEULEMENT après succès
           updateCartIcon();
-          toggleCartPopup();
+          document.getElementById('cart-popup')?.remove();
         } else {
-          alert("Erreur envoi : " + (data.error || "serveur"));
+          alert("Erreur : " + (data.error || "serveur"));
         }
       } catch (err) {
         alert("Erreur réseau – réessaie");
       }
     });
-  };
 
   // === AFFICHAGE PRODUITS ===
   const showProduct = (p) => {
