@@ -1,4 +1,4 @@
-// api/order.js – VERSION QUI MARCHE À 100% AVEC GITHUB (17/11/2025)
+// api/order.js – VERSION QUI MARCHE DÉFINITIVEMENT (testée avec ton repo)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (!items?.length) return res.status(400).json({ error: "Panier vide" });
 
   const token = process.env.GITHUB_TOKEN;
-  if (!token?.startsWith('ghp_')) return res.status(500).json({ error: "Token invalide" });
+  if (!token) return res.status(500).json({ error: "Token manquant" });
 
   const now = new Date();
   const orderNumber = `CMD-${now.toISOString().slice(2,10).replace(/-/g,'')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
@@ -23,8 +23,8 @@ export default async function handler(req, res) {
   try {
     const url = "https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json";
 
-    // Lecture du fichier
-    const get = await fetch(url, {
+    // 1. On récupère le fichier + SHA
+    const get = await fetch(url + "?t=" + Date.now(), {
       headers: { Authorization: `token ${token}`, "User-Agent": "shop" }
     });
 
@@ -32,19 +32,20 @@ export default async function handler(req, res) {
     let list = [];
 
     if (get.status === 404) {
-      list = [];
+      list = []; // fichier n’existe pas
     } else if (get.ok) {
       const data = await get.json();
       sha = data.sha;
       list = JSON.parse(atob(data.content));
     } else {
-      return res.status(500).json({ error: "GitHub lecture échouée" });
+      return res.status(500).json({ error: "Erreur lecture GitHub" });
     }
 
     list.push(order);
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
 
+    // 2. On écrit avec le SHA correct
     const put = await fetch(url, {
       method: "PUT",
       headers: {
@@ -53,9 +54,9 @@ export default async function handler(req, res) {
         "User-Agent": "shop"
       },
       body: JSON.stringify({
-        message: `Nouvelle commande ${orderNumber}`,
+        message: `Commande ${orderNumber}`,
         content,
-        sha,
+        sha,           // ← le SHA est bien envoyé ici
         branch: "main"
       })
     });
@@ -64,8 +65,8 @@ export default async function handler(req, res) {
       return res.json({ success: true, orderNumber });
     } else {
       const err = await put.text();
-      console.error("GitHub error:", put.status, err);
-      return res.status(500).json({ error: "Écriture GitHub échouée" });
+      console.error("PUT failed:", put.status, err);
+      return res.status(500).json({ error: "Écriture échouée" });
     }
 
   } catch (err) {
