@@ -1,55 +1,75 @@
-// api/order.js – VERSION ULTRA-SIMPLE QUI MARCHE TOUJOURS DANS TELEGRAM
+// api/order.js – VERSION QUI MARCHE À 100% AVEC GITHUB (17/11/2025)
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { username, userId, items, total } = req.body;
-  if (!items || items.length === 0) return res.status(400).json({ error: "Panier vide" });
+  if (!items?.length) return res.status(400).json({ error: "Panier vide" });
 
   const token = process.env.GITHUB_TOKEN;
-  if (!token) return res.status(500).json({ error: "Token manquant" });
+  if (!token?.startsWith('ghp_')) return res.status(500).json({ error: "Token invalide" });
+
+  const now = new Date();
+  const orderNumber = `CMD-${now.toISOString().slice(2,10).replace(/-/g,'')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const order = {
+    orderNumber,
+    timestamp: now.toLocaleString('fr-FR'),
+    username: username || "Anonyme",
+    userId: userId || "inconnu",
+    items,
+    total
+  };
 
   try {
-    const now = new Date();
-    const orderNumber = `CMD-${now.toISOString().slice(2,10).replace(/-/g,'')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    const url = "https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json";
 
-    const fullOrder = {
-      orderNumber,
-      timestamp: now.toLocaleString('fr-FR'),
-      username: username || "Anonyme",
-      userId: userId || "inconnu",
-      items,
-      total
-    };
-
-    // Récupère orders.json
-    const fileRes = await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
-      headers: { Authorization: `token ${token}` }
+    // Lecture du fichier
+    const get = await fetch(url, {
+      headers: { Authorization: `token ${token}`, "User-Agent": "shop" }
     });
 
     let sha = null;
-    let orders = [];
-    if (fileRes.ok) {
-      const data = await fileRes.json();
+    let list = [];
+
+    if (get.status === 404) {
+      list = [];
+    } else if (get.ok) {
+      const data = await get.json();
       sha = data.sha;
-      orders = JSON.parse(atob(data.content));
+      list = JSON.parse(atob(data.content));
+    } else {
+      return res.status(500).json({ error: "GitHub lecture échouée" });
     }
 
-    orders.push(fullOrder);
+    list.push(order);
 
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(orders, null, 2))));
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))));
 
-    await fetch("https://api.github.com/repos/maxirmeee-code/telegram-shop-miniapp/contents/web/orders.json", {
+    const put = await fetch(url, {
       method: "PUT",
       headers: {
         Authorization: `token ${token}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "shop"
       },
-      body: JSON.stringify({ message: `Commande ${orderNumber}`, content, sha })
+      body: JSON.stringify({
+        message: `Nouvelle commande ${orderNumber}`,
+        content,
+        sha,
+        branch: "main"
+      })
     });
 
-    res.json({ success: true, orderNumber });
+    if (put.ok) {
+      return res.json({ success: true, orderNumber });
+    } else {
+      const err = await put.text();
+      console.error("GitHub error:", put.status, err);
+      return res.status(500).json({ error: "Écriture GitHub échouée" });
+    }
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erreur serveur" });
+    return res.status(500).json({ error: "Crash" });
   }
 }
