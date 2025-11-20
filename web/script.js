@@ -75,27 +75,22 @@ document.addEventListener("DOMContentLoaded", () => {
  document.body.appendChild(popup);
  }
 
-  // ENVOI DE LA COMMANDE – VERSION DEBUG (on voit tout)
+    // ENVOI FINAL – FORMAT 100% COMPATIBLE AVEC TON api/order.js
   document.addEventListener("click", async e => {
     if (e.target.id !== "send-order") return;
 
-    // Ligne magique qui va tout nous dire
-    console.log("PANIER AVANT ENVOI :", cart);
-
-    if (cart.length === 0) {
-      alert("Panier vraiment vide !");
-      return;
-    }
+    if (cart.length === 0) return alert("Panier vide");
 
     const payload = {
-      username: "test-debug",
-      userId: "debug",
-      items: cart,
-      total: cart.reduce((s,i) => s + i.price, 0),
-      debug_cart_length: cart.length
+      username: Telegram.WebApp.initDataUnsafe?.user?.username || "Anonyme",
+      userId: Telegram.WebApp.initDataUnsafe?.user?.id || "inconnu",
+      items: cart.map(item => ({
+        name: item.name,
+        weight: item.weight,
+        price: item.price
+      })),
+      total: cart.reduce((s,i) => s + i.price, 0)
     };
-
-    alert("Envoi en cours… panier = " + cart.length + " articles");
 
     try {
       const res = await fetch("/api/order", {
@@ -103,11 +98,16 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const text = await res.text();
-      console.log("RÉPONSE SERVEUR :", text);
-      alert("Réponse serveur : " + text);
+      const data = await res.json();
+
+      if (data.success) {
+        alert(`COMMANDE VALIDÉE !\n\nNuméro : ${data.orderNumber}`);
+        window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
+      } else {
+        alert("Erreur : " + (data.error || "serveur"));
+      }
     } catch (err) {
-      alert("Erreur réseau : " + err.message);
+      alert("Erreur réseau");
     }
   });
 
