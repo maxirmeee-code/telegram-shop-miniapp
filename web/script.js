@@ -75,43 +75,41 @@ document.addEventListener("DOMContentLoaded", () => {
  document.body.appendChild(popup);
  }
 
- // ENVOI DE LA COMMANDE – AVEC COPIE DU PANIER (anti-vidage Telegram)
- document.addEventListener("click", async e => {
- if (e.target.id !== "send-order") return;
+  // ENVOI DE LA COMMANDE – VERSION DEBUG (on voit tout)
+  document.addEventListener("click", async e => {
+    if (e.target.id !== "send-order") return;
 
- const panierActuel = [...cart]; // ← copie profonde, IMPOSSIBLE À VIDER
+    // Ligne magique qui va tout nous dire
+    console.log("PANIER AVANT ENVOI :", cart);
 
- if (panierActuel.length === 0) {
- alert("Panier vide !");
- return;
- }
+    if (cart.length === 0) {
+      alert("Panier vraiment vide !");
+      return;
+    }
 
- const user = Telegram.WebApp.initDataUnsafe?.user || {};
- const payload = {
- username: user.username || user.first_name || "Anonyme",
- userId: user.id || "inconnu",
- items: panierActuel,
- total: panierActuel.reduce((s, i) => s + i.price, 0)
- };
+    const payload = {
+      username: "test-debug",
+      userId: "debug",
+      items: cart,
+      total: cart.reduce((s,i) => s + i.price, 0),
+      debug_cart_length: cart.length
+    };
 
- try {
- const res = await fetch("/api/order", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify(payload)
- });
- const data = await res.json();
+    alert("Envoi en cours… panier = " + cart.length + " articles");
 
- if (data.success) {
- alert(`COMMANDE ENVOYÉE !\n\nNuméro : ${data.orderNumber}\n\nVa sur la page suivante`);
- window.location.href = `https://telegram-shop-miniapp.vercel.app/networks/?order=${data.orderNumber}`;
- } else {
- alert("Erreur serveur : " + (data.error || "inconnue"));
- }
- } catch {
- alert("Erreur réseau – réessaie");
- }
- });
+    try {
+      const res = await fetch("/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      console.log("RÉPONSE SERVEUR :", text);
+      alert("Réponse serveur : " + text);
+    } catch (err) {
+      alert("Erreur réseau : " + err.message);
+    }
+  });
 
  Telegram.WebApp?.ready();
 });
